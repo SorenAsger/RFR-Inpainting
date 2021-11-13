@@ -24,7 +24,29 @@ class VGG16FeatureExtractor(nn.Module):
             func = getattr(self, 'enc_{:d}'.format(i + 1))
             results.append(func(results[-1]))
         return results[1:]
-    
+
+
+class EfficientNetFeatureExtractor(nn.Module):
+    def __init__(self):
+        super().__init__()
+        effnet = models.efficientnet_b7(pretrained=True)
+        self.enc_1 = nn.Sequential(*effnet.features[:3])
+        self.enc_2 = nn.Sequential(*effnet.features[3:6])
+        self.enc_3 = nn.Sequential(*effnet.features[6:9])
+
+        # fix the encoder
+        for i in range(3):
+            for param in getattr(self, 'enc_{:d}'.format(i + 1)).parameters():
+                param.requires_grad = False
+
+def forward(self, image):
+    results = [image]
+    for i in range(3):
+        func = getattr(self, 'enc_{:d}'.format(i + 1))
+        results.append(func(results[-1]))
+    return results[1:]
+
+
 class Bottleneck(nn.Module):
     expansion = 4
 
