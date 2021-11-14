@@ -1,186 +1,202 @@
-import os
-import glob
-import scipy
 import torch
-import random
-import numpy as np
-import torchvision.transforms.functional as F
-from PIL import Image
-# from scipy.misc import imread
-from imageio import imread
-import cv2
+import torch.optim as optim
+from utils.io import load_ckpt
+from utils.io import save_ckpt
+from torchvision.utils import make_grid
+from torchvision.utils import save_image
+from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor
+import os
+import time
 
-class Dataset(torch.utils.data.Dataset):
-    def __init__(self, image_path, mask_path, mask_mode, target_size, augment=True, training=True, mask_reverse = False):
-        super(Dataset, self).__init__()
-        self.augment = augment
-        self.training = training
-        self.data = self.load_list(image_path)
-        self.mask_data = self.load_list(mask_path)
 
-        self.target_size = target_size
-        self.mask_type = mask_mode
-        self.mask_reverse = mask_reverse
+class RFRNetModel():
+    def __init__(self):
+        self.G = None
+        self.lossNet = None
+        self.iter = None
+        self.optm_G = None
+        self.device = None
+        self.real_A = None
+        self.real_B = None
+        self.fake_B = None
+        self.comp_B = None
+        self.l1_loss_val = 0.0
 
-        # in test mode, there's a one-to-one relationship between mask and image
-        # masks are loaded non random
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
+    def initialize_model(self, path=None, train=True):
+        self.G = RFRNet()
+        self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
+        if train:
+            self.lossNet = EfficientNetFeatureExtractor()
         try:
-            item = self.load_item(index)
+            start_iter = load_ckpt(path, [('generator', self.G)], [('optimizer_G', self.optm_G)])
+            if train:
+                self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
+                print('Model Initialized, iter: ', start_iter)
+                self.iter = start_iter
         except:
-            print('loading error: ' + self.data[index])
-            item = self.load_item(0)
+            print('No trained model, from start')
+            self.iter = 0
 
-        return item
-
-    def load_item(self, index):
-        img = imread(self.data[index])
-        if self.training:
-            img = self.resize(img)
+    def cuda(self):
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            print("Model moved to cuda")
+            self.G.cuda()
+            if self.lossNet is not None:
+                self.lossNet.cuda()
         else:
-            img = self.resize(img, True, True, True)
-        # load mask
-        mask = self.load_mask(img, index)
-        # augment data
-        if self.training:
-            if self.augment and np.random.binomial(1, 0.5) > 0:
-                img = img[:, ::-1, ...]
-            if self.augment and np.random.binomial(1, 0.5) > 0:
-                mask = mask[:, ::-1, ...]
+            self.device = torch.device("cpu")
 
-        return self.to_tensor(img), self.to_tensor(mask)
+    def train(self, train_loader, save_path, finetune=False, iters=450000, image_save_path=None):
+        #    writer = SummaryWriter(log_dir="log_info")
+        self.G.train(finetune=finetune)
+        if finetune:
+            self.optm_G = optim.Adam(filter(lambda p: p.requires_grad, self.G.parameters()), lr=5e-5)
+        print("Starting training from iteration:{:d}".format(self.iter))
+        s_time = time.time()
+        while self.iter < iters:
+            for items in train_loader:
+                gt_images, masks = self.__cuda__(*items)
+                masked_images = gt_images * masks
+                # print(gt_images.data.shape)
+                # print(masks.data.shape)
+                # print(masked_images.data.shape)
+                if image_save_path is not None and self.iter % 500 == 0:
+                    masksView = torch.cat([masks], dim=1)
+                    fake_B, mask = self.G(masked_images, masksView)
+                    comp_B = fake_B * (1 - masksView) + gt_images * masksView
+                    if not os.path.exists('{:s}/results'.format(image_save_path)):
+                        os.makedirs('{:s}/results'.format(image_save_path))
+                    for k in range(comp_B.size(0)):
+                        grid = make_grid(comp_B[k:k + 1])
+                        file_path = '{:s}/results/img_{:d}.png'.format(image_save_path, self.iter)
+                        save_image(grid, file_path)
 
-    def load_mask(self, img, index):
-        imgh, imgw = img.shape[0:2]
-        
-        #external mask, random order
-        if self.mask_type == 0:
-            mask_index = random.randint(0, len(self.mask_data) - 1)
-            mask = imread(self.mask_data[mask_index])
-            mask = (mask > 0).astype(np.uint8)       # threshold due to interpolation
-            mask = self.resize(mask, False)
-            if self.mask_reverse:
-                return (1 - mask) * 255
-            else:
-                return mask * 255
-        #generate random mask
-        if self.mask_type == 1:
-            mask = 1 - generate_stroke_mask([self.target_size, self.target_size])
-            mask = (mask>0).astype(np.uint8)* 255
-            mask = self.resize(mask,False)
-            return mask
-        
-        #external mask, fixed order
-        if self.mask_type == 2:
-            mask_index = index
-            mask = imread(self.mask_data[mask_index])
-            mask = (mask > 0).astype(np.uint8)       # threshold due to interpolation
-            mask = self.resize(mask, False)
-            if self.mask_reverse:
-                return (1 - mask) * 255
-            else:
-                return mask * 255
+                        grid = make_grid(masked_images[k:k + 1] + 1 - masksView[k:k + 1])
+                        file_path = '{:s}/results/masked_img_{:d}.png'.format(image_save_path, self.iter)
+                        save_image(grid, file_path)
+                self.forward(masked_images, masks, gt_images)
+                self.update_parameters()
+                self.iter += 1
 
-    def resize(self, img, aspect_ratio_kept = True, fixed_size = False, centerCrop=False):
-        
-        if aspect_ratio_kept:
-            imgh, imgw = img.shape[0:2]
-            side = np.minimum(imgh, imgw)
-            if fixed_size:
-                if centerCrop:
-                # center crop
-                    j = (imgh - side) // 2
-                    i = (imgw - side) // 2
-                    img = img[j:j + side, i:i + side, ...]
-                else:
-                    j = (imgh - side)
-                    i = (imgw - side)
-                    h_start = 0
-                    w_start = 0
-                    if j != 0:
-                        h_start = random.randrange(0, j)
-                    if i != 0:
-                        w_start = random.randrange(0, i)
-                    img = img[h_start:h_start + side, w_start:w_start + side, ...]
-            else:
-                if side <= self.target_size:
-                    j = (imgh - side)
-                    i = (imgw - side)
-                    h_start = 0
-                    w_start = 0
-                    if j != 0:
-                        h_start = random.randrange(0, j)
-                    if i != 0:
-                        w_start = random.randrange(0, i)
-                    img = img[h_start:h_start + side, w_start:w_start + side, ...]
-                else:
-                    side = random.randrange(self.target_size, side)
-                    j = (imgh - side)
-                    i = (imgw - side)
-                    h_start = random.randrange(0, j)
-                    w_start = random.randrange(0, i)
-                    img = img[h_start:h_start + side, w_start:w_start + side, ...]
-        # img = scipy.misc.imresize(img, [self.target_size, self.target_size])
-        img = np.array(Image.fromarray(img).resize(size=(self.target_size, self.target_size)))
-        return img
+                if self.iter % 50 == 0:
+                    e_time = time.time()
+                    int_time = e_time - s_time
+                    print("Iteration:%d, l1_loss:%.4f, time_taken:%.2f" % (self.iter, self.l1_loss_val / 50, int_time))
+                    s_time = time.time()
+                    self.l1_loss_val = 0.0
 
-    def to_tensor(self, img):
-        img = Image.fromarray(img)
-        img_t = F.to_tensor(img).float()
-        return img_t
+                if self.iter % 5000 == 0:
+                    if not os.path.exists('{:s}'.format(save_path)):
+                        os.makedirs('{:s}'.format(save_path))
+                    save_ckpt('{:s}/g_{:d}.pth'.format(save_path, self.iter), [('generator', self.G)],
+                              [('optimizer_G', self.optm_G)], self.iter)
+        if not os.path.exists('{:s}'.format(save_path)):
+            os.makedirs('{:s}'.format(save_path))
+            save_ckpt('{:s}/g_{:s}.pth'.format(save_path, self.iter), [('generator', self.G)],
+                      [('optimizer_G', self.optm_G)], self.iter)
 
-    def load_list(self, path):
-        if isinstance(path, str):
-            if path[-3:] == "txt":
-                line = open(path,"r")
-                lines = line.readlines()
-                file_names = []
-                for line in lines:
-                    file_names.append("../../Dataset/Places2/train/data_256"+line.split(" ")[0])
-                return file_names
-            if os.path.isdir(path):
-                path = list(glob.glob(path + '/*.jpg')) + list(glob.glob(path + '/*.png'))
-                path.sort()
-                return path
-            if os.path.isfile(path):
-                try:
-                    return np.genfromtxt(path, dtype=np.str, encoding='utf-8')
-                except:
-                    return [path]
-        return []
+    def test(self, test_loader, result_save_path):
+        self.G.eval()
+        for para in self.G.parameters():
+            para.requires_grad = False
+        count = 0
+        for items in test_loader:
+            gt_images, masks = self.__cuda__(*items)
+            masked_images = gt_images * masks
+            masks = torch.cat([masks], dim=1)
+            fake_B, mask = self.G(masked_images, masks)
+            comp_B = fake_B * (1 - masks) + gt_images * masks
+            if not os.path.exists('{:s}/results'.format(result_save_path)):
+                os.makedirs('{:s}/results'.format(result_save_path))
+            for k in range(comp_B.size(0)):
+                count += 1
+                grid = make_grid(comp_B[k:k + 1])
+                file_path = '{:s}/results/img_{:d}.png'.format(result_save_path, count)
+                save_image(grid, file_path)
 
-def generate_stroke_mask(im_size, max_parts=15, maxVertex=25, maxLength=100, maxBrushWidth=24, maxAngle=360):
-    mask = np.zeros((im_size[0], im_size[1], 1), dtype=np.float32)
-    parts = random.randint(1, max_parts)
-    for i in range(parts):
-        mask = mask + np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, im_size[0], im_size[1])
-    mask = np.minimum(mask, 1.0)
-    mask = np.concatenate([mask, mask, mask], axis = 2)
-    return mask
+                grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
+                file_path = '{:s}/results/masked_img_{:d}.png'.format(result_save_path, count)
+                save_image(grid, file_path)
 
-def np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, h, w):
-    mask = np.zeros((h, w, 1), np.float32)
-    numVertex = np.random.randint(maxVertex + 1)
-    startY = np.random.randint(h)
-    startX = np.random.randint(w)
-    brushWidth = 0
-    for i in range(numVertex):
-        angle = np.random.randint(maxAngle + 1)
-        angle = angle / 360.0 * 2 * np.pi
-        if i % 2 == 0:
-            angle = 2 * np.pi - angle
-        length = np.random.randint(maxLength + 1)
-        brushWidth = np.random.randint(10, maxBrushWidth + 1) // 2 * 2
-        nextY = startY + length * np.cos(angle)
-        nextX = startX + length * np.sin(angle)
-        nextY = np.maximum(np.minimum(nextY, h - 1), 0).astype(np.int)
-        nextX = np.maximum(np.minimum(nextX, w - 1), 0).astype(np.int)
-        cv2.line(mask, (startY, startX), (nextY, nextX), 1, brushWidth)
-        cv2.circle(mask, (startY, startX), brushWidth // 2, 2)
-        startY, startX = nextY, nextX
-    cv2.circle(mask, (startY, startX), brushWidth // 2, 2)
-    return mask
+    def forward(self, masked_image, mask, gt_image):
+        self.real_A = masked_image
+        self.real_B = gt_image
+        self.mask = mask
+        fake_B, _ = self.G(masked_image, mask)
+        self.fake_B = fake_B
+        self.comp_B = self.fake_B * (1 - mask) + self.real_B * mask
+
+    def update_parameters(self):
+        self.update_G()
+        self.update_D()
+
+    def update_G(self):
+        self.optm_G.zero_grad()
+        loss_G = self.get_g_loss()
+        loss_G.backward()
+        self.optm_G.step()
+
+    def update_D(self):
+        return
+
+    def get_g_loss(self):
+        real_B = self.real_B
+        fake_B = self.fake_B
+        comp_B = self.comp_B
+
+        real_B_feats = self.lossNet(real_B)
+        fake_B_feats = self.lossNet(fake_B)
+        comp_B_feats = self.lossNet(comp_B)
+
+        tv_loss = self.TV_loss(comp_B * (1 - self.mask))
+        style_loss = self.style_loss(real_B_feats, fake_B_feats) + self.style_loss(real_B_feats, comp_B_feats)
+        preceptual_loss = self.preceptual_loss(real_B_feats, fake_B_feats) + self.preceptual_loss(real_B_feats,
+                                                                                                  comp_B_feats)
+        valid_loss = self.l1_loss(real_B, fake_B, self.mask)
+        hole_loss = self.l1_loss(real_B, fake_B, (1 - self.mask))
+
+        loss_G = (tv_loss * 0.1
+                  + style_loss * 120
+                  + preceptual_loss * 0.05
+                  + valid_loss * 1
+                  + hole_loss * 6)
+
+        self.l1_loss_val += valid_loss.detach() + hole_loss.detach()
+        return loss_G
+
+    def l1_loss(self, f1, f2, mask=1):
+        return torch.mean(torch.abs(f1 - f2) * mask)
+
+    def style_loss(self, A_feats, B_feats):
+        assert len(A_feats) == len(B_feats), "the length of two input feature maps lists should be the same"
+        loss_value = 0.0
+        for i in range(len(A_feats)):
+            A_feat = A_feats[i]
+            B_feat = B_feats[i]
+            _, c, w, h = A_feat.size()
+            A_feat = A_feat.view(A_feat.size(0), A_feat.size(1), A_feat.size(2) * A_feat.size(3))
+            B_feat = B_feat.view(B_feat.size(0), B_feat.size(1), B_feat.size(2) * B_feat.size(3))
+            A_style = torch.matmul(A_feat, A_feat.transpose(2, 1))
+            B_style = torch.matmul(B_feat, B_feat.transpose(2, 1))
+            loss_value += torch.mean(torch.abs(A_style - B_style) / (c * w * h))
+        return loss_value
+
+    def TV_loss(self, x):
+        h_x = x.size(2)
+        w_x = x.size(3)
+        h_tv = torch.mean(torch.abs(x[:, :, 1:, :] - x[:, :, :h_x - 1, :]))
+        w_tv = torch.mean(torch.abs(x[:, :, :, 1:] - x[:, :, :, :w_x - 1]))
+        return h_tv + w_tv
+
+    def preceptual_loss(self, A_feats, B_feats):
+        assert len(A_feats) == len(B_feats), "the length of two input feature maps lists should be the same"
+        loss_value = 0.0
+        for i in range(len(A_feats)):
+            A_feat = A_feats[i]
+            B_feat = B_feats[i]
+            loss_value += torch.mean(torch.abs(A_feat - B_feat))
+        return loss_value
+
+    def __cuda__(self, *args):
+        return (item.to(self.device) for item in args)
