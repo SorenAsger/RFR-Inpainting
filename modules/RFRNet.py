@@ -39,12 +39,12 @@ class EfficientNetFeatureExtractor(nn.Module):
             for param in getattr(self, 'enc_{:d}'.format(i + 1)).parameters():
                 param.requires_grad = False
 
-def forward(self, image):
-    results = [image]
-    for i in range(3):
-        func = getattr(self, 'enc_{:d}'.format(i + 1))
-        results.append(func(results[-1]))
-    return results[1:]
+    def forward(self, image):
+        results = [image]
+        for i in range(3):
+            func = getattr(self, 'enc_{:d}'.format(i + 1))
+            results.append(func(results[-1]))
+        return results[1:]
 
 
 class Bottleneck(nn.Module):
