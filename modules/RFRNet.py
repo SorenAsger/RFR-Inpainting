@@ -45,8 +45,28 @@ class EfficientNetFeatureExtractor(nn.Module):
         for i in range(4):
             func = getattr(self, 'enc_{:d}'.format(i + 1))
             results.append(func(results[-1]))
-        return results[1:]
+            return results[1:]
 
+
+class MobileNetFeatureExtractor(nn.Module):
+    def __init__(self):
+        super().__init__()
+        effnet = models.mobilenet_v3_large(pretrained=True)(pretrained=True)
+        self.enc_1 = nn.Sequential(*effnet.features[:3])
+        self.enc_2 = nn.Sequential(*effnet.features[3:6])
+        self.enc_3 = nn.Sequential(*effnet.features[6:9])
+
+        # fix the encoder
+        for i in range(3):
+            for param in getattr(self, 'enc_{:d}'.format(i + 1)).parameters():
+                param.requires_grad = False
+
+    def forward(self, image):
+        results = [image]
+        for i in range(3):
+            func = getattr(self, 'enc_{:d}'.format(i + 1))
+            results.append(func(results[-1]))
+            return results[1:]
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -211,7 +231,7 @@ class RFRNet(nn.Module):
                 if isinstance(module, nn.BatchNorm2d):
                     module.eval()
 
-#effnet = models.efficientnet_b7(pretrained=True)
+#effnet = models.mobilenet_v3_large(pretrained=True)
 #print(len(effnet.features))
 #print(effnet.features[0])
 #print("===" * 100)
