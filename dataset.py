@@ -99,7 +99,7 @@ class Dataset(torch.utils.data.Dataset):
             h_e, w_e = h_s + h_d, w_s + w_d
             m = np.zeros((height, width, 1), dtype=np.float32)
             m[h_s:h_e, w_s:w_e] = 255
-            for _ in range(np.random.randint(5, 10)):
+            for _ in range(np.random.randint(6, 12)):
                 # Get random x locations to start line
 
                 x1, x2 = np.random.randint(1, width), np.random.randint(1, width)
@@ -110,7 +110,7 @@ class Dataset(torch.utils.data.Dataset):
 
                 # Get random thickness of the line drawn
 
-                thickness = np.random.randint(width * 0.02, width * 0.05)
+                thickness = np.random.randint(width * 0.04, width * 0.10)
 
                 # Draw black line on the white mask
 
