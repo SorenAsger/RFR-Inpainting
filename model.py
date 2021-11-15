@@ -4,7 +4,7 @@ from utils.io import load_ckpt
 from utils.io import save_ckpt
 from torchvision.utils import make_grid
 from torchvision.utils import save_image
-from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor
+from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor, MobileNetFeatureExtractor
 import os
 import time
 
@@ -26,7 +26,7 @@ class RFRNetModel():
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         if train:
-            self.lossNet = EfficientNetFeatureExtractor()
+            self.lossNet = MobileNetFeatureExtractor()
         try:
             start_iter = load_ckpt(path, [('generator', self.G)], [('optimizer_G', self.optm_G)])
             if train:
