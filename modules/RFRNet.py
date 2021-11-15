@@ -51,7 +51,7 @@ class EfficientNetFeatureExtractor(nn.Module):
 class MobileNetFeatureExtractor(nn.Module):
     def __init__(self):
         super().__init__()
-        effnet = models.mobilenet_v3_large(pretrained=True)(pretrained=True)
+        effnet = models.mobilenet_v3_large(pretrained=True)
         self.enc_1 = nn.Sequential(*effnet.features[:3])
         self.enc_2 = nn.Sequential(*effnet.features[3:6])
         self.enc_3 = nn.Sequential(*effnet.features[6:9])
