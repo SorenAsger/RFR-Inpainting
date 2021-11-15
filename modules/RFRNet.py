@@ -30,18 +30,19 @@ class EfficientNetFeatureExtractor(nn.Module):
     def __init__(self):
         super().__init__()
         effnet = models.efficientnet_b7(pretrained=True)
-        self.enc_1 = nn.Sequential(*effnet.features[:3])
-        self.enc_2 = nn.Sequential(*effnet.features[3:6])
-        self.enc_3 = nn.Sequential(*effnet.features[6:9])
+        self.enc_1 = nn.Sequential(*effnet.features[:2])
+        self.enc_2 = nn.Sequential(*effnet.features[2:4])
+        self.enc_3 = nn.Sequential(*effnet.features[4:6])
+        self.enc_4 = nn.Sequential(*effnet.features[6:8])
 
         # fix the encoder
-        for i in range(3):
+        for i in range(4):
             for param in getattr(self, 'enc_{:d}'.format(i + 1)).parameters():
                 param.requires_grad = False
 
     def forward(self, image):
         results = [image]
-        for i in range(3):
+        for i in range(4):
             func = getattr(self, 'enc_{:d}'.format(i + 1))
             results.append(func(results[-1]))
         return results[1:]
@@ -209,3 +210,16 @@ class RFRNet(nn.Module):
             for name, module in self.named_modules():
                 if isinstance(module, nn.BatchNorm2d):
                     module.eval()
+
+#effnet = models.efficientnet_b7(pretrained=True)
+#print(len(effnet.features))
+#print(effnet.features[0])
+#print("===" * 100)
+#print("===" * 100)
+#print(effnet.features[1])
+#print("===" * 100)
+#print("===" * 100)
+#print(effnet.features[2])
+#vgg16 = models.vgg16(pretrained=True)
+#print(vgg16.features)
+#print(len(vgg16.features))
