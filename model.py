@@ -61,7 +61,7 @@ class RFRNetModel():
                 # print(gt_images.data.shape)
                 # print(masks.data.shape)
                 # print(masked_images.data.shape)
-                if image_save_path is not None and self.iter % 500 == 0:
+                if image_save_path is not None and self.iter % 800 == 0:
                     masksView = torch.cat([masks], dim=1)
                     fake_B, mask = self.G(masked_images, masksView)
                     comp_B = fake_B * (1 - masksView) + gt_images * masksView
@@ -86,7 +86,7 @@ class RFRNetModel():
                     s_time = time.time()
                     self.l1_loss_val = 0.0
 
-                if self.iter % 5000 == 0:
+                if self.iter % 20000 == 0:
                     if not os.path.exists('{:s}'.format(save_path)):
                         os.makedirs('{:s}'.format(save_path))
                     save_ckpt('{:s}/g_{:d}.pth'.format(save_path, self.iter), [('generator', self.G)],
