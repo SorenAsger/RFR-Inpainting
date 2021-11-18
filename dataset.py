@@ -93,6 +93,7 @@ class Dataset(torch.utils.data.Dataset):
         # Our generate mask, squares + lines
         if self.mask_type == 3:
             m = self.gen_random_square_lines_mask(self.target_size)
+            m = (m > 0).astype(np.uint8) * 255
             m = self.resize(m, False)
             return m
 
@@ -186,8 +187,8 @@ def gen_random_square_lines_mask(size, cover):
     h_s, w_s = random.randrange(height // 2), random.randrange(width // 2)
     h_d, w_d = random.randint(height // 4, height // 2), random.randint(width // 4, width // 2)
     h_e, w_e = h_s + h_d, w_s + w_d
-    m = np.zeros((height, width, 1), dtype=np.float32)
-    m[h_s:h_e, w_s:w_e] = 255
+    m = np.ones((height, width, 1), dtype=np.float32)
+    m[h_s:h_e, w_s:w_e] = 0
     for _ in range(np.random.randint(6, 12)):
         # Get random x locations to start line
 
@@ -203,11 +204,8 @@ def gen_random_square_lines_mask(size, cover):
 
         # Draw black line on the white mask
 
-        cv2.line(m, (x1, y1), (x2, y2), (1), thickness)
+        cv2.line(m, (x1, y1), (x2, y2), (0), thickness)
     m = np.concatenate([m, m, m], axis=2)
-    m = 1 - m
-    m = (m > 0).astype(np.uint8)  # threshold due to interpolation
-    m = m * 255
     return m
 
 
@@ -236,6 +234,16 @@ def np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, h, w):
 
 
 def mask_cover(mask):
-    return np.mean((mask > 0).as_type(int))
-
-generate_stroke_mask(256)
+    return np.mean((mask == 0))
+"""
+msk = gen_random_square_lines_mask(256, 50)
+print((msk > 0).sum())
+print((msk > 0).shape)
+print(256*256*3)
+#smsk = generate_stroke_mask([256, 256])
+#print(smsk)
+mask = gen_random_square_lines_mask(256, 50)
+mask = (mask > 0).astype(np.uint8) * 255
+print(mask)
+print(mask_cover(mask))
+"""
