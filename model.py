@@ -107,17 +107,28 @@ class RFRNetModel():
             masks = torch.cat([masks], dim=1)
             fake_B, mask = self.G(masked_images, masks)
             comp_B = fake_B * (1 - masks) + gt_images * masks
-            if not os.path.exists('{:s}/results'.format(result_save_path)):
-                os.makedirs('{:s}/results'.format(result_save_path))
+            if not os.path.exists('{:s}/results/{:d}'.format(result_save_path, count)):
+                os.makedirs('{:s}/results/{:d}'.format(result_save_path, count))
             for k in range(comp_B.size(0)):
-                count += 1
+                # count += 1
                 grid = make_grid(comp_B[k:k + 1])
-                file_path = '{:s}/results/img_{:d}.png'.format(result_save_path, count)
+                file_path = '{:s}/results/{:d}/img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
 
                 grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
-                file_path = '{:s}/results/masked_img_{:d}.png'.format(result_save_path, count)
+                file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
+            self.forward(masked_images, masks, gt_images)
+            prev_loss_sum = self.l1_loss_val
+            image_loss_g = self.get_g_loss()
+            image_loss_hole_image = self.l1_loss_val - prev_loss_sum
+            with open('{:s}/results/{:d}'.format(result_save_path, count), 'w') as f:
+                f.write(image_loss_g)
+                f.write("\n")
+                f.write(image_loss_hole_image)
+            if count % 100 == 0:
+                print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
+            count += 1
 
     def forward(self, masked_image, mask, gt_image):
         self.real_A = masked_image
