@@ -104,7 +104,7 @@ class RFRNetModel():
         for items in test_loader:
             gt_images, masks = self.__cuda__(*items)
             masked_images = gt_images * masks
-            masks = torch.cat([masks], dim=1)
+            # masks = torch.cat([masks], dim=1)
             fake_B, mask = self.G(masked_images, masks)
             comp_B = fake_B * (1 - masks) + gt_images * masks
             if not os.path.exists('{:s}/results'.format(result_save_path)):
