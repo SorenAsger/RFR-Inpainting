@@ -225,7 +225,6 @@ def gen_random_square_lines_mask(size, cover):
     while True:
         m = gen()
         mcov = mask_cover(m)
-        print(mcov)
         if cover == 1 and (0.1 < mcov < 0.2):
             break
         if cover != 1 and (0.5 < mcov < 0.6):
