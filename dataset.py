@@ -92,12 +92,12 @@ class Dataset(torch.utils.data.Dataset):
 
         # Our generate mask, squares + lines, this is 10-20 %
         if self.mask_type == 3:
-            m = self.gen_random_square_lines_mask(self.target_size, 1)
+            m = gen_random_square_lines_mask(self.target_size, 1)
             m = self.resize(m, False)
             return m
 
         if self.mask_type == 4: # this is 50-60%
-            m = self.gen_random_square_lines_mask(self.target_size, 2)
+            m = gen_random_square_lines_mask(self.target_size, 2)
             m = self.resize(m, False)
             return m
 
