@@ -90,35 +90,14 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 return mask * 255
 
-        # Our generate mask, squares + lines
+        # Our generate mask, squares + lines, this is 10-20 %
         if self.mask_type == 3:
-            width = self.target_size
-            height = width
-            h_s, w_s = random.randrange(height // 2), random.randrange(width // 2)
-            h_d, w_d = random.randint(height // 4, height // 2), random.randint(width // 4, width // 2)
-            h_e, w_e = h_s + h_d, w_s + w_d
-            m = np.zeros((height, width, 1), dtype=np.float32)
-            m[h_s:h_e, w_s:w_e] = 255
-            for _ in range(np.random.randint(6, 12)):
-                # Get random x locations to start line
+            m = gen_random_square_lines_mask(self.target_size, 1)
+            m = self.resize(m, False)
+            return m
 
-                x1, x2 = np.random.randint(1, width), np.random.randint(1, width)
-
-                # Get random y locations to start line
-
-                y1, y2 = np.random.randint(1, height), np.random.randint(1, height)
-
-                # Get random thickness of the line drawn
-
-                thickness = np.random.randint(width * 0.04, width * 0.10)
-
-                # Draw black line on the white mask
-
-                cv2.line(m, (x1, y1), (x2, y2), (1), thickness)
-            m = np.concatenate([m, m, m], axis=2)
-            m = 1 - m
-            m = (m > 0).astype(np.uint8)  # threshold due to interpolation
-            m = m * 255
+        if self.mask_type == 4: # this is 50-60%
+            m = gen_random_square_lines_mask(self.target_size, 2)
             m = self.resize(m, False)
             return m
 
@@ -206,6 +185,53 @@ def generate_stroke_mask(im_size, max_parts=15, maxVertex=25, maxLength=100, max
     return mask
 
 
+def gen_random_square_lines_mask(size, cover):
+    def gen():
+        width = size
+        height = width
+        if cover == 1: # 10-20 %
+            h_s, w_s = random.randrange(height // 2), random.randrange(width // 2)
+            h_d, w_d = random.randint(height // 8, height // 4), random.randint(width // 8, width // 4)
+            h_e, w_e = h_s + h_d, w_s + w_d
+            lower_thick_limit = 0.02 # for lines
+            upper_thick_limit = 0.05
+        else:  # 50-60%
+            h_s, w_s = random.randrange(height // 2), random.randrange(width // 2)
+            h_d, w_d = random.randint(height // 3, height // 1.5), random.randint(width // 3, width // 1.5)
+            h_e, w_e = h_s + h_d, w_s + w_d
+            lower_thick_limit = 0.05
+            upper_thick_limit = 0.12
+        m = np.ones((height, width, 1), dtype=np.float32)
+        m[h_s:h_e, w_s:w_e] = 0
+        for _ in range(np.random.randint(8, 16)):
+            # Get random x locations to start line
+
+            x1, x2 = np.random.randint(1, width), np.random.randint(1, width)
+
+            # Get random y locations to start line
+
+            y1, y2 = np.random.randint(1, height), np.random.randint(1, height)
+
+            # Get random thickness of the line drawn
+
+            thickness = np.random.randint(width * lower_thick_limit, width * upper_thick_limit)
+
+            # Draw black line on the white mask
+
+            cv2.line(m, (x1, y1), (x2, y2), (0), thickness)
+        m = np.concatenate([m, m, m], axis=2)
+        m = (m > 0).astype(np.uint8) * 255
+        return m
+    while True:
+        m = gen()
+        mcov = mask_cover(m)
+        if cover == 1 and (0.1 < mcov < 0.2):
+            break
+        if cover != 1 and (0.5 < mcov < 0.6):
+            break
+    return m
+
+
 def np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, h, w):
     mask = np.zeros((h, w, 1), np.float32)
     numVertex = np.random.randint(maxVertex + 1)
@@ -228,3 +254,21 @@ def np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, h, w):
         startY, startX = nextY, nextX
     cv2.circle(mask, (startY, startX), brushWidth // 2, 2)
     return mask
+
+
+def mask_cover(mask):
+    return np.mean((mask == 0))
+
+#gen_random_square_lines_mask(256, 2)
+"""
+msk = gen_random_square_lines_mask(256, 50)
+print((msk > 0).sum())
+print((msk > 0).shape)
+print(256*256*3)
+#smsk = generate_stroke_mask([256, 256])
+#print(smsk)
+mask = gen_random_square_lines_mask(256, 50)
+mask = (mask > 0).astype(np.uint8) * 255
+print(mask)
+print(mask_cover(mask))
+"""
