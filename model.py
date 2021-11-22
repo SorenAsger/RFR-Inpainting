@@ -126,8 +126,8 @@ class RFRNetModel():
                 file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
 
-            valid_loss = self.l1_loss(gt_images, fake_B, self.mask)
-            hole_loss = self.l1_loss(gt_images, fake_B, (1 - self.mask))
+            valid_loss = self.l1_loss(gt_images, fake_B, mask)
+            hole_loss = self.l1_loss(gt_images, fake_B, (1 - mask))
 
             l1_hole_losses.append(hole_loss)
             l1_unmasked_losses.append(valid_loss)
