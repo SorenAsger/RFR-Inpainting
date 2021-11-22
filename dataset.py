@@ -233,9 +233,3 @@ def np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, h, w):
         startY, startX = nextY, nextX
     cv2.circle(mask, (startY, startX), brushWidth // 2, 2)
     return mask
-
-
-def mask_cover(mask):
-    return np.mean((mask > 0).as_type(int))
-
-generate_stroke_mask(256)
