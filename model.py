@@ -8,8 +8,9 @@ from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExt
 import os
 import time
 import cv2
-import tensorflow as tf
 import numpy as np
+# pip install pytorch-msssim
+from pytorch_msssim import ssim
 
 
 class RFRNetModel():
@@ -135,8 +136,7 @@ class RFRNetModel():
             print(gt_images)
             print(comp_B)
             psnr_losses.append(self.psnr_loss(gt_images.detach().cpu().numpy(), comp_B.detach().cpu().numpy()))
-            ssim_losses.append(self.ssim_loss(tf.convert_to_tensor(gt_images.detach().cpu().numpy()),
-                                              tf.convert_to_tensor(comp_B.detach().cpu().numpy())))
+            ssim_losses.append(self.ssim_loss(gt_images, comp_B))
 
             print(l1_unmasked_losses[count])
             print(l1_hole_losses[count])
@@ -229,7 +229,7 @@ class RFRNetModel():
         return cv2.PSNR(img1, img2)
 
     def ssim_loss(self, gtimg, img):
-        return np.mean(tf.image.ssim(gtimg, img, 255))
+        return ssim(gtimg, img)
 
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)
