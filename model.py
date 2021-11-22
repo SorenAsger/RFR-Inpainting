@@ -104,7 +104,7 @@ class RFRNetModel():
         self.G.eval()
         for para in self.G.parameters():
             para.requires_grad = False
-        count = 0
+        count = 1
         l1_hole_losses = []
         l1_unmasked_losses = []
         psnr_losses = []
@@ -124,7 +124,6 @@ class RFRNetModel():
                 save_image(grid, file_path)
 
                 grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
-
                 file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
 
@@ -132,28 +131,35 @@ class RFRNetModel():
                 file_path = '{:s}/results/{:d}/wtf_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
 
+            valid_loss = self.l1_loss(gt_images, fake_B, masks).item()
+            hole_loss = self.l1_loss(gt_images, fake_B, (1 - masks)).item()
 
+            # print(gt_images)
+            # print(comp_B)
+            # print(gt_images.shape)
+            # print(comp_B.shape)
+            # print(fake_B.shape)
+            psnr_loss = self.psnr_loss(gt_images.detach().cpu().numpy(), comp_B.detach().cpu().numpy())
+            ssim_loss = self.ssim_loss(gt_images, comp_B).item()
 
-            valid_loss = self.l1_loss(gt_images, fake_B, masks)
-            hole_loss = self.l1_loss(gt_images, fake_B, (1 - masks))
-
+            psnr_losses.append(psnr_loss)
+            ssim_losses.append(ssim_loss)
             l1_hole_losses.append(hole_loss.item())
             l1_unmasked_losses.append(valid_loss.item())
-
-            #print(gt_images)
-            #print(comp_B)
-            print(gt_images.shape)
-            print(comp_B.shape)
-            print(fake_B.shape)
-            psnr_losses.append(self.psnr_loss(gt_images.detach().cpu().numpy(), comp_B.detach().cpu().numpy()))
-            ssim_losses.append(self.ssim_loss(gt_images, comp_B).item())
-
-            print(l1_unmasked_losses[count])
-            print(l1_hole_losses[count])
-            print(psnr_losses[count])
-            print(ssim_losses[count])
-            if count % 100 == 0:
-                print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
+            with open('{:s}/results/{:d}/loss.txt'.format(result_save_path, count), "w") as f:
+                f.write(hole_loss)
+                f.write("\n")
+                f.write(valid_loss)
+                f.write("\n")
+                f.write(psnr_loss)
+                f.write("\n")
+                f.write(ssim_loss)
+            # print(l1_unmasked_losses[count])
+            # print(l1_hole_losses[count])
+            # print(psnr_losses[count])
+            # print(ssim_losses[count])
+            # if count % 100 == 0:
+            #    print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
             count += 1
 
     def forward(self, masked_image, mask, gt_image):
