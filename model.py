@@ -104,8 +104,8 @@ class RFRNetModel():
         for para in self.G.parameters():
             para.requires_grad = False
         count = 0
-        l1_losses = []
-        g_losses = []
+        l1_hole_losses = []
+        l1_unmasked_losses = []
         psnr_losses = []
         ssim_losses = []
         for items in test_loader:
@@ -125,15 +125,17 @@ class RFRNetModel():
                 grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
                 file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
-            self.l1_loss_val = 0
-            self.forward(masked_images, masks, gt_images)
-            l1_losses.append(self.l1_loss_val)
-            g_losses.append(self.get_g_loss())
+
+            valid_loss = self.l1_loss(gt_images, fake_B, self.mask)
+            hole_loss = self.l1_loss(gt_images, fake_B, (1 - self.mask))
+
+            l1_hole_losses.append(hole_loss)
+            l1_unmasked_losses.append(valid_loss)
             psnr_losses.append(self.psnr_loss(gt_images, comp_B))
             ssim_losses.append(self.ssim_loss(gt_images, comp_B))
 
-            print(l1_losses[count])
-            print(g_losses[count])
+            print(l1_unmasked_losses[count])
+            print(l1_hole_losses[count])
             print(psnr_losses[count])
             print(ssim_losses[count])
             if count % 100 == 0:
