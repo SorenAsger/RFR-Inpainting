@@ -134,7 +134,7 @@ class RFRNetModel():
 
             print(gt_images)
             print(comp_B)
-            psnr_losses.append(self.psnr_loss(gt_images.cpu().numpy(), comp_B.cpKu().numpy()))
+            psnr_losses.append(self.psnr_loss(gt_images.cpu().numpy(), comp_B.cpu().numpy()))
             ssim_losses.append(self.ssim_loss(gt_images.cpu().numpy(), comp_B.cpu().numpy()))
 
             print(l1_unmasked_losses[count])
