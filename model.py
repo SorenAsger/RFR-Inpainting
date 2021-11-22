@@ -26,7 +26,7 @@ class RFRNetModel():
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         if train:
-            self.lossNet = EfficientNetFeatureExtractor()
+            self.lossNet = VGG16FeatureExtractor()
         try:
             start_iter = load_ckpt(path, [('generator', self.G)], [('optimizer_G', self.optm_G)])
             if train:
