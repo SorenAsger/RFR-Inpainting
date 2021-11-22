@@ -144,8 +144,8 @@ class RFRNetModel():
 
             psnr_losses.append(psnr_loss)
             ssim_losses.append(ssim_loss)
-            l1_hole_losses.append(hole_loss.item())
-            l1_unmasked_losses.append(valid_loss.item())
+            l1_hole_losses.append(hole_loss)
+            l1_unmasked_losses.append(valid_loss)
             with open('{:s}/results/{:d}/loss.txt'.format(result_save_path, count), "w") as f:
                 f.write(hole_loss)
                 f.write("\n")
@@ -154,12 +154,13 @@ class RFRNetModel():
                 f.write(psnr_loss)
                 f.write("\n")
                 f.write(ssim_loss)
-            # print(l1_unmasked_losses[count])
-            # print(l1_hole_losses[count])
-            # print(psnr_losses[count])
-            # print(ssim_losses[count])
-            # if count % 100 == 0:
-            #    print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
+                # print(l1_unmasked_losses[count])
+                # print(l1_hole_losses[count])
+                # print(psnr_losses[count])
+                # print(ssim_losses[count])
+            if count % 100 == 0:
+                print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
+
             count += 1
 
     def forward(self, masked_image, mask, gt_image):
