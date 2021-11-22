@@ -131,6 +131,9 @@ class RFRNetModel():
 
             l1_hole_losses.append(hole_loss)
             l1_unmasked_losses.append(valid_loss)
+
+            print(gt_images)
+            print(comp_B)
             psnr_losses.append(self.psnr_loss(gt_images, comp_B))
             ssim_losses.append(self.ssim_loss(gt_images, comp_B))
 
