@@ -159,7 +159,7 @@ class RFRNetModel():
                 # print(psnr_losses[count])
                 # print(ssim_losses[count])
             if count % 100 == 0:
-                print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
+                print("Iteration:%d" % count)
 
             count += 1
 
