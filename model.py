@@ -123,8 +123,7 @@ class RFRNetModel():
                 file_path = '{:s}/results/{:d}/img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
 
-                #grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
-                grid = make_grid(masked_images[k:k + 1])
+                grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
 
                 file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
