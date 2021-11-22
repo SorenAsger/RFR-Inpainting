@@ -7,6 +7,9 @@ from torchvision.utils import save_image
 from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor, MobileNetFeatureExtractor
 import os
 import time
+import cv2
+import tensorflow as tf
+import numpy as np
 
 
 class RFRNetModel():
@@ -101,6 +104,10 @@ class RFRNetModel():
         for para in self.G.parameters():
             para.requires_grad = False
         count = 0
+        l1_losses = []
+        g_losses = []
+        psnr_losses = []
+        ssim_losses = []
         for items in test_loader:
             gt_images, masks = self.__cuda__(*items)
             masked_images = gt_images * masks
@@ -118,14 +125,17 @@ class RFRNetModel():
                 grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
                 file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
+            self.l1_loss_val = 0
             self.forward(masked_images, masks, gt_images)
-            prev_loss_sum = self.l1_loss_val
-            image_loss_g = self.get_g_loss()
-            image_loss_hole_image = self.l1_loss_val - prev_loss_sum
-            with open('{:s}/results/{:d}'.format(result_save_path, count), 'w') as f:
-                f.write(image_loss_g)
-                f.write("\n")
-                f.write(image_loss_hole_image)
+            l1_losses.append(self.l1_loss_val)
+            g_losses.append(self.get_g_loss())
+            psnr_losses.append(self.psnr_loss(gt_images, comp_B))
+            ssim_losses.append(self.ssim_loss(gt_images, comp_B))
+
+            print(l1_losses[count])
+            print(g_losses[count])
+            print(psnr_losses[count])
+            print(ssim_losses[count])
             if count % 100 == 0:
                 print("Iteration:%d, l1_loss:%.4f" % (count, self.l1_loss_val / count))
             count += 1
@@ -208,6 +218,12 @@ class RFRNetModel():
             B_feat = B_feats[i]
             loss_value += torch.mean(torch.abs(A_feat - B_feat))
         return loss_value
+
+    def psnr_loss(self, img1, img2):
+        return cv2.PSNR(img1, img2)
+
+    def ssim_loss(self, gtimg, img):
+        return np.mean(tf.image.ssim(gtimg, img, 255))
 
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)
