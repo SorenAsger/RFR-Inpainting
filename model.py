@@ -112,7 +112,7 @@ class RFRNetModel():
             gt_images, masks = self.__cuda__(*items)
             masked_images = gt_images * masks
             # masks = torch.cat([masks], dim=1)
-            fake_B, mask = self.G(masked_images, masks)
+            fake_B, _ = self.G(masked_images, masks)
             comp_B = fake_B * (1 - masks) + gt_images * masks
             if not os.path.exists('{:s}/results/{:d}'.format(result_save_path, count)):
                 os.makedirs('{:s}/results/{:d}'.format(result_save_path, count))
@@ -126,10 +126,8 @@ class RFRNetModel():
                 file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
                 save_image(grid, file_path)
 
-            print(mask)
-            print(fake_B)
-            valid_loss = self.l1_loss(gt_images, fake_B, mask)
-            hole_loss = self.l1_loss(gt_images, fake_B, (1 - mask))
+            valid_loss = self.l1_loss(gt_images, fake_B, masks)
+            hole_loss = self.l1_loss(gt_images, fake_B, (1 - masks))
 
             l1_hole_losses.append(hole_loss)
             l1_unmasked_losses.append(valid_loss)
