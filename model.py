@@ -130,15 +130,15 @@ class RFRNetModel():
             valid_loss = self.l1_loss(gt_images, fake_B, masks)
             hole_loss = self.l1_loss(gt_images, fake_B, (1 - masks))
 
-            l1_hole_losses.append(hole_loss)
-            l1_unmasked_losses.append(valid_loss)
+            l1_hole_losses.append(hole_loss.item())
+            l1_unmasked_losses.append(valid_loss.item())
 
             print(gt_images)
             print(comp_B)
             print(gt_images.shape)
             print(comp_B.shape)
             psnr_losses.append(self.psnr_loss(gt_images.detach().cpu().numpy(), comp_B.detach().cpu().numpy()))
-            ssim_losses.append(self.ssim_loss(gt_images, comp_B).detach())
+            ssim_losses.append(self.ssim_loss(gt_images, comp_B).item())
 
             print(l1_unmasked_losses[count])
             print(l1_hole_losses[count])
