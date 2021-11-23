@@ -154,13 +154,8 @@ class RFRNetModel():
                 f.write(str(psnr_loss))
                 f.write("\n")
                 f.write(str(ssim_loss))
-                # print(l1_unmasked_losses[count])
-                # print(l1_hole_losses[count])
-                # print(psnr_losses[count])
-                # print(ssim_losses[count])
             if count % 100 == 0:
                 print("Iteration:%d" % count)
-
             count += 1
 
     def forward(self, masked_image, mask, gt_image):
