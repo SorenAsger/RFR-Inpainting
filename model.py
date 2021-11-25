@@ -26,7 +26,7 @@ class RFRNetModel():
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         if train:
-            self.lossNet = EfficientNetFeatureExtractor()
+            self.lossNet = VGG16FeatureExtractor()
         try:
             start_iter = load_ckpt(path, [('generator', self.G)], [('optimizer_G', self.optm_G)])
             if train:
@@ -86,7 +86,7 @@ class RFRNetModel():
                     s_time = time.time()
                     self.l1_loss_val = 0.0
 
-                if self.iter % 5000 == 0:
+                if self.iter % 20000 == 0:
                     if not os.path.exists('{:s}'.format(save_path)):
                         os.makedirs('{:s}'.format(save_path))
                     save_ckpt('{:s}/g_{:d}.pth'.format(save_path, self.iter), [('generator', self.G)],
