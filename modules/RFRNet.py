@@ -178,7 +178,7 @@ class RFRNet(nn.Module):
         self.RFRModule.att.att.att_scores_prev = None
         self.RFRModule.att.att.masks_prev = None
 
-        for i in range(6):
+        for i in range(12):
             x2, m2 = self.Pconv21(x2, m2)
             x2, m2 = self.Pconv22(x2, m2)
             x2 = F.leaky_relu(self.bn2(x2), inplace = True)
