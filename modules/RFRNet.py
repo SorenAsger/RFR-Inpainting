@@ -186,6 +186,7 @@ class RFRNet(nn.Module):
             x2 = x2 * m2
             feature_group.append(x2.view(n, c, 1, h, w))
             mask_group.append(m2.view(n, c, 1, h, w))
+            print(f"{i}: {m2.sum()}")
         x3 = torch.cat(feature_group, dim = 2)
         m3 = torch.cat(mask_group, dim = 2)
         amp_vec = m3.mean(dim = 2)
