@@ -96,7 +96,7 @@ class Dataset(torch.utils.data.Dataset):
             m = self.resize(m, False)
             return m
 
-        if self.mask_type == 4: # this is 50-60%
+        if self.mask_type == 4:  # this is 50-60%
             m = gen_random_square_lines_mask(self.target_size, 2)
             m = self.resize(m, False)
             return m
@@ -189,11 +189,11 @@ def gen_random_square_lines_mask(size, cover):
     def gen():
         width = size
         height = width
-        if cover == 1: # 10-20 %
+        if cover == 1:  # 10-20 %
             h_s, w_s = random.randrange(height // 2), random.randrange(width // 2)
             h_d, w_d = random.randint(height // 8, height // 4), random.randint(width // 8, width // 4)
             h_e, w_e = h_s + h_d, w_s + w_d
-            lower_thick_limit = 0.02 # for lines
+            lower_thick_limit = 0.02  # for lines
             upper_thick_limit = 0.05
         else:  # 50-60%
             h_s, w_s = random.randrange(height // 2), random.randrange(width // 2)
@@ -222,6 +222,7 @@ def gen_random_square_lines_mask(size, cover):
         m = np.concatenate([m, m, m], axis=2)
         m = (m > 0).astype(np.uint8) * 255
         return m
+
     while True:
         m = gen()
         mcov = mask_cover(m)
@@ -259,7 +260,8 @@ def np_free_form_mask(maxVertex, maxLength, maxBrushWidth, maxAngle, h, w):
 def mask_cover(mask):
     return np.mean((mask == 0))
 
-#gen_random_square_lines_mask(256, 2)
+
+# gen_random_square_lines_mask(256, 2)
 """
 msk = gen_random_square_lines_mask(256, 50)
 print((msk > 0).sum())
