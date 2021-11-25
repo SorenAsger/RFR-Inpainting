@@ -178,7 +178,7 @@ class RFRNet(nn.Module):
         self.RFRModule.att.att.att_scores_prev = None
         self.RFRModule.att.att.masks_prev = None
 
-        for i in range(12):
+        for i in range(6):
             x2, m2 = self.Pconv21(x2, m2)
             x2, m2 = self.Pconv22(x2, m2)
             x2 = F.leaky_relu(self.bn2(x2), inplace = True)
@@ -186,9 +186,6 @@ class RFRNet(nn.Module):
             x2 = x2 * m2
             feature_group.append(x2.view(n, c, 1, h, w))
             mask_group.append(m2.view(n, c, 1, h, w))
-            #print(f"{i}: {m2.sum()}")
-            #print(f"{i}: {max(m2)}")
-            #print(f"{i}: {m2}")
         x3 = torch.cat(feature_group, dim = 2)
         m3 = torch.cat(mask_group, dim = 2)
         amp_vec = m3.mean(dim = 2)
