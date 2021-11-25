@@ -186,7 +186,7 @@ class RFRNet(nn.Module):
             x2 = x2 * m2
             feature_group.append(x2.view(n, c, 1, h, w))
             mask_group.append(m2.view(n, c, 1, h, w))
-            print(f"{i}: {m2.sum()}")
+            #print(f"{i}: {m2.sum()}")
             #print(f"{i}: {max(m2)}")
             #print(f"{i}: {m2}")
         x3 = torch.cat(feature_group, dim = 2)
