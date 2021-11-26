@@ -168,13 +168,14 @@ class RFRNetModel():
                                                                                                   comp_B_feats)
         valid_loss = self.l1_loss(real_B, fake_B, self.mask)
         hole_loss = self.l1_loss(real_B, fake_B, (1 - self.mask))
-
         loss_G = (tv_loss * 0.1
                   + style_loss * 120
                   + preceptual_loss * 0.05
                   + valid_loss * 1
                   + hole_loss * 6) + loss_D_G
 
+        print(loss_D_G)
+        print(loss_G - loss_D_G)
         self.l1_loss_val += valid_loss.detach() + hole_loss.detach()
         return loss_G
 
