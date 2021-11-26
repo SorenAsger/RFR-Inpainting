@@ -159,8 +159,8 @@ class RFRNetModel():
         self.D.eval()
         discriminator_fake = self.D(comp_B)
         self.D.train()
-        #tgt = torch.Tensor(1).to(torch.device('cuda'))
-        #loss_D_G = self.D_lf(discriminator_fake, tgt) * 0.01
+        # tgt = torch.Tensor(1).to(torch.device('cuda'))
+        # loss_D_G = self.D_lf(discriminator_fake, tgt) * 0.01
         loss_D_G = -torch.log(discriminator_fake + 0.0001)
         real_B_feats = self.lossNet(real_B)
         fake_B_feats = self.lossNet(fake_B)
@@ -178,8 +178,8 @@ class RFRNetModel():
                   + valid_loss * 1
                   + hole_loss * 6) + loss_D_G
 
-        #print(loss_D_G)
-        #print(loss_G - loss_D_G)
+        # print(loss_D_G)
+        # print(loss_G - loss_D_G)
         self.l1_loss_val += valid_loss.detach() + hole_loss.detach()
         return loss_G
 
@@ -190,9 +190,9 @@ class RFRNetModel():
         discriminator_real = self.D(real_B)
         discriminator_fake = self.D(comp_B)
 
-        #tgt0 = torch.Tensor(0).to(torch.device('cuda'))
-        #tgt1 = torch.Tensor(1).to(torch.device('cuda'))
-        #d_loss = self.D_lf(discriminator_fake, tgt0) + self.D_lf(discriminator_real, tgt1)
+        # tgt0 = torch.Tensor(0).to(torch.device('cuda'))
+        # tgt1 = torch.Tensor(1).to(torch.device('cuda'))
+        # d_loss = self.D_lf(discriminator_fake, tgt0) + self.D_lf(discriminator_real, tgt1)
 
         d_loss = -(torch.log(discriminator_real + 0.0001) + torch.log(1 - discriminator_fake + 0.0001))
         return d_loss
