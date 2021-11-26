@@ -194,7 +194,7 @@ class RFRNetModel():
         #tgt1 = torch.Tensor(1).to(torch.device('cuda'))
         #d_loss = self.D_lf(discriminator_fake, tgt0) + self.D_lf(discriminator_real, tgt1)
 
-        d_loss = -(torch.log(discriminator_real + 0.0001) + torch.log(1 - discriminator_fake + 0.0001)) * 0.1
+        d_loss = -(torch.log(discriminator_real + 0.0001) + torch.log(1 - discriminator_fake + 0.0001))
         return d_loss
 
     def l1_loss(self, f1, f2, mask=1):
