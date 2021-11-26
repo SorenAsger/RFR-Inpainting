@@ -24,6 +24,7 @@ class Dataset(torch.utils.data.Dataset):
         self.mask_reverse = mask_reverse
         if not training:
             random.seed(69696969)
+            np.random.seed(69696969)
         # in test mode, there's a one-to-one relationship between mask and image
         # masks are loaded non random
 
