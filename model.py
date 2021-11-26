@@ -1,5 +1,7 @@
 import torch
 import torch.optim as optim
+from torch import nn
+
 from utils.io import load_ckpt
 from utils.io import save_ckpt
 from torchvision.utils import make_grid
@@ -26,6 +28,7 @@ class RFRNetModel():
         self.l1_loss_val = 0.0
 
     def initialize_model(self, path=None, train=True):
+        self.D_lf = nn.BCELoss()
         self.D = Discriminator()
         self.optm_D = optim.Adam(self.D.parameters(), lr=2e-4)
         self.G = RFRNet()
@@ -156,8 +159,8 @@ class RFRNetModel():
         self.D.eval()
         discriminator_fake = self.D(fake_B)
         self.D.train()
-        loss_D_G = torch.log(discriminator_fake)
-
+        tgt = torch.Tensor(1).to(torch.device('cuda'))
+        loss_D_G = self.D_lf(discriminator_fake, tgt) * 0.01
         real_B_feats = self.lossNet(real_B)
         fake_B_feats = self.lossNet(fake_B)
         comp_B_feats = self.lossNet(comp_B)
@@ -186,8 +189,12 @@ class RFRNetModel():
         discriminator_real = self.D(real_B)
         discriminator_fake = self.D(comp_B)
 
-        d_loss = torch.log(discriminator_real) + torch.log(1 - discriminator_fake)
-        return d_loss
+        tgt0 = torch.Tensor(0).to(torch.device('cuda'))
+        tgt1 = torch.Tensor(1).to(torch.device('cuda'))
+        d_loss = self.D_lf(discriminator_fake, tgt0) + self.D_lf(discriminator_real, tgt1)
+
+        #d_loss = torch.log(discriminator_real) + torch.log(1 - discriminator_fake)
+        return d_loss * 0.01
 
     def l1_loss(self, f1, f2, mask=1):
         return torch.mean(torch.abs(f1 - f2) * mask)
