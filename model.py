@@ -153,9 +153,9 @@ class RFRNetModel():
         real_B = self.real_B
         fake_B = self.fake_B
         comp_B = self.comp_B
-
+        self.D.eval()
         discriminator_fake = self.D(fake_B)
-
+        self.D.train()
         loss_D_G = torch.log(discriminator_fake)
 
         real_B_feats = self.lossNet(real_B)
