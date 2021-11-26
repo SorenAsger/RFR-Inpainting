@@ -143,7 +143,6 @@ class RFRNetModel():
         loss_G.backward()
         self.optm_G.step()
 
-
     def update_D(self):
         self.optm_D.zero_grad()
         loss_D = self.get_d_loss()
@@ -155,7 +154,7 @@ class RFRNetModel():
         fake_B = self.fake_B
         comp_B = self.comp_B
 
-        discriminator_fake = self.D(comp_B)
+        discriminator_fake = self.D(fake_B)
 
         loss_D_G = torch.log(discriminator_fake)
 
