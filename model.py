@@ -139,25 +139,24 @@ class RFRNetModel():
 
     def update_G(self):
         self.optm_G.zero_grad()
-        self.optm_D.zero_grad()
-        loss_G, loss_D = self.get_g_loss()
-        loss_G.backward(retain_graph=True)
+        loss_G = self.get_g_loss()
+        loss_G.backward()
         self.optm_G.step()
-        loss_D.backward()
-        self.optm_D.step()
+
 
     def update_D(self):
-        return
+        self.optm_D.zero_grad()
+        loss_D = self.get_d_loss()
+        loss_D.backward()
+        self.optm_D.step()
 
     def get_g_loss(self):
         real_B = self.real_B
         fake_B = self.fake_B
         comp_B = self.comp_B
 
-        discriminator_real = self.D(real_B)
         discriminator_fake = self.D(comp_B)
 
-        d_loss = torch.log(discriminator_real) + torch.log(1 - discriminator_fake)
         loss_D_G = torch.log(discriminator_fake)
 
         real_B_feats = self.lossNet(real_B)
@@ -178,7 +177,17 @@ class RFRNetModel():
                   + hole_loss * 6) + loss_D_G
 
         self.l1_loss_val += valid_loss.detach() + hole_loss.detach()
-        return loss_G, d_loss
+        return loss_G
+
+    def get_d_loss(self):
+        real_B = self.real_B
+        comp_B = self.comp_B.detach()
+
+        discriminator_real = self.D(real_B)
+        discriminator_fake = self.D(comp_B)
+
+        d_loss = torch.log(discriminator_real) + torch.log(1 - discriminator_fake)
+        return d_loss
 
     def l1_loss(self, f1, f2, mask=1):
         return torch.mean(torch.abs(f1 - f2) * mask)
