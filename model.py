@@ -4,9 +4,13 @@ from utils.io import load_ckpt
 from utils.io import save_ckpt
 from torchvision.utils import make_grid
 from torchvision.utils import save_image
-from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor
+from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor, MobileNetFeatureExtractor
 import os
 import time
+import cv2
+import numpy as np
+# pip install pytorch-msssim
+from pytorch_msssim import ssim
 
 
 class RFRNetModel():
@@ -96,28 +100,70 @@ class RFRNetModel():
             save_ckpt('{:s}/g_{:s}.pth'.format(save_path, self.iter), [('generator', self.G)],
                       [('optimizer_G', self.optm_G)], self.iter)
 
-    def test(self, test_loader, result_save_path):
+    def test(self, test_loader, result_save_path, max_iters):
         self.G.eval()
         for para in self.G.parameters():
             para.requires_grad = False
-        count = 0
+        count = 1
+        l1_hole_losses = []
+        l1_unmasked_losses = []
+        psnr_losses = []
+        ssim_losses = []
         for items in test_loader:
+            if count == max_iters:
+                break
             gt_images, masks = self.__cuda__(*items)
             masked_images = gt_images * masks
             # masks = torch.cat([masks], dim=1)
-            fake_B, mask = self.G(masked_images, masks)
+            fake_B, _ = self.G(masked_images, masks)
             comp_B = fake_B * (1 - masks) + gt_images * masks
-            if not os.path.exists('{:s}/results'.format(result_save_path)):
-                os.makedirs('{:s}/results'.format(result_save_path))
-            for k in range(comp_B.size(0)):
-                count += 1
-                grid = make_grid(comp_B[k:k + 1])
-                file_path = '{:s}/results/img_{:d}.png'.format(result_save_path, count)
-                save_image(grid, file_path)
 
-                grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
-                file_path = '{:s}/results/masked_img_{:d}.png'.format(result_save_path, count)
-                save_image(grid, file_path)
+            if count % 100 == 0:
+                print("Iteration:%d" % count)
+                if not os.path.exists('{:s}/results/{:d}'.format(result_save_path, count)):
+                    os.makedirs('{:s}/results/{:d}'.format(result_save_path, count))
+                for k in range(comp_B.size(0)):
+                    # count += 1
+                    grid = make_grid(comp_B[k:k + 1])
+                    file_path = '{:s}/results/{:d}/img_{:d}.png'.format(result_save_path, count, count)
+                    save_image(grid, file_path)
+
+                    grid = make_grid(masked_images[k:k + 1] + 1 - masks[k:k + 1])
+                    file_path = '{:s}/results/{:d}/masked_img_{:d}.png'.format(result_save_path, count, count)
+                    save_image(grid, file_path)
+
+                    grid = make_grid(fake_B[k:k + 1])
+                    file_path = '{:s}/results/{:d}/wtf_img_{:d}.png'.format(result_save_path, count, count)
+                    save_image(grid, file_path)
+
+                valid_loss = self.l1_loss(gt_images, fake_B, masks).item()
+                hole_loss = self.l1_loss(gt_images, fake_B, (1 - masks)).item()
+
+                # print(gt_images)
+                # print(comp_B)
+                # print(gt_images.shape)
+                # print(comp_B.shape)
+                # print(fake_B.shape)
+                psnr_loss = self.psnr_loss(gt_images.detach().cpu().numpy(), comp_B.detach().cpu().numpy())
+                ssim_loss = self.ssim_loss(gt_images, comp_B).item()
+
+                psnr_losses.append(psnr_loss)
+                ssim_losses.append(ssim_loss)
+                l1_hole_losses.append(hole_loss)
+                l1_unmasked_losses.append(valid_loss)
+                with open('{:s}/results/{:d}/loss.txt'.format(result_save_path, count), "w") as f:
+                    f.write(str(hole_loss))
+                    f.write("\n")
+                    f.write(str(valid_loss))
+                    f.write("\n")
+                    f.write(str(psnr_loss))
+                    f.write("\n")
+                    f.write(str(ssim_loss))
+            count += 1
+        print(np.mean(psnr_losses))
+        print(np.mean(ssim_losses))
+        print(np.mean(l1_hole_losses))
+        print(np.mean(l1_unmasked_losses))
 
     def forward(self, masked_image, mask, gt_image):
         self.real_A = masked_image
@@ -197,6 +243,12 @@ class RFRNetModel():
             B_feat = B_feats[i]
             loss_value += torch.mean(torch.abs(A_feat - B_feat))
         return loss_value
+
+    def psnr_loss(self, img1, img2):
+        return cv2.PSNR(img1, img2)
+
+    def ssim_loss(self, gtimg, img):
+        return ssim(gtimg, img)
 
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)
