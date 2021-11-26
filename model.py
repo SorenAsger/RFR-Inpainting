@@ -4,6 +4,7 @@ from utils.io import load_ckpt
 from utils.io import save_ckpt
 from torchvision.utils import make_grid
 from torchvision.utils import save_image
+from modules.Discriminator import Discriminator
 from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor
 import os
 import time
@@ -12,6 +13,8 @@ import time
 class RFRNetModel():
     def __init__(self):
         self.G = None
+        self.D = None
+        self.optm_D = None
         self.lossNet = None
         self.iter = None
         self.optm_G = None
@@ -23,6 +26,8 @@ class RFRNetModel():
         self.l1_loss_val = 0.0
 
     def initialize_model(self, path=None, train=True):
+        self.D = Discriminator()
+        self.optm_D = optim.Adam(self.D.parameters(), lr=2e-4)
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         if train:
@@ -42,6 +47,7 @@ class RFRNetModel():
             self.device = torch.device("cuda")
             print("Model moved to cuda")
             self.G.cuda()
+            self.D.cuda()
             if self.lossNet is not None:
                 self.lossNet.cuda()
         else:
@@ -133,9 +139,12 @@ class RFRNetModel():
 
     def update_G(self):
         self.optm_G.zero_grad()
-        loss_G = self.get_g_loss()
+        self.optm_D.zero_grad()
+        loss_G, loss_D = self.get_g_loss()
         loss_G.backward()
         self.optm_G.step()
+        loss_D.backward()
+        self.optm_D.step()
 
     def update_D(self):
         return
@@ -144,6 +153,12 @@ class RFRNetModel():
         real_B = self.real_B
         fake_B = self.fake_B
         comp_B = self.comp_B
+
+        discriminator_real = self.D(real_B)
+        discriminator_fake = self.D(comp_B)
+
+        d_loss = torch.log(discriminator_real) + torch.log(1 - discriminator_fake)
+        loss_D_G = torch.log(discriminator_fake)
 
         real_B_feats = self.lossNet(real_B)
         fake_B_feats = self.lossNet(fake_B)
@@ -160,10 +175,10 @@ class RFRNetModel():
                   + style_loss * 120
                   + preceptual_loss * 0.05
                   + valid_loss * 1
-                  + hole_loss * 6)
+                  + hole_loss * 6) + loss_D_G
 
         self.l1_loss_val += valid_loss.detach() + hole_loss.detach()
-        return loss_G
+        return loss_G, d_loss
 
     def l1_loss(self, f1, f2, mask=1):
         return torch.mean(torch.abs(f1 - f2) * mask)

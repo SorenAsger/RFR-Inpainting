@@ -149,7 +149,7 @@ class RFRModule(nn.Module):
         return h
 
 class RFRNet(nn.Module):
-    def __init__(self):
+    def     __init__(self):
         super(RFRNet, self).__init__()
         self.Pconv1 = PartialConv2d(3, 64, 7, 2, 3, multi_channel = True, bias = False)
         self.bn1 = nn.BatchNorm2d(64)
