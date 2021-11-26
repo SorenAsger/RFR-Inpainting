@@ -141,7 +141,7 @@ class RFRNetModel():
         self.optm_G.zero_grad()
         self.optm_D.zero_grad()
         loss_G, loss_D = self.get_g_loss()
-        loss_G.backward()
+        loss_G.backward(retain_graph=True)
         self.optm_G.step()
         loss_D.backward()
         self.optm_D.step()
