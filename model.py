@@ -33,7 +33,7 @@ class RFRNetModel():
     def initialize_model(self, path=None, train=True):
         self.D_lf = nn.BCELoss()
         self.D = Discriminator()
-        self.optm_D = optim.Adam(self.D.parameters(), lr=2e-4)
+        self.optm_D = optim.SGD(self.D.parameters(), lr=2e-4)
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         if train:
