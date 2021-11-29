@@ -26,6 +26,9 @@ class RFRNetModel():
         self.fake_B = None
         self.comp_B = None
         self.l1_loss_val = 0.0
+        self.d_loss_val = 0.0
+        self.g_loss_val = 0.0
+        self.g_d_loss_val = 0.0
 
     def initialize_model(self, path=None, train=True):
         self.D_lf = nn.BCELoss()
@@ -91,9 +94,12 @@ class RFRNetModel():
                 if self.iter % 50 == 0:
                     e_time = time.time()
                     int_time = e_time - s_time
-                    print("Iteration:%d, l1_loss:%.4f, time_taken:%.2f" % (self.iter, self.l1_loss_val / 50, int_time))
+                    print("Iteration:%d, l1_loss:%.4f, d_loss:%.4f, G_loss:%.4f, D_G_loss:%.4f,  time_taken:%.2f" % (
+                        self.iter, self.l1_loss_val / 50, self.d_loss_val / 50, self.g_loss_val / 50,
+                        self.g_d_loss_val / 50, int_time))
                     s_time = time.time()
                     self.l1_loss_val = 0.0
+                    self.d_loss_val = 0.0
 
                 if self.iter % 20000 == 0:
                     if not os.path.exists('{:s}'.format(save_path)):
@@ -181,6 +187,8 @@ class RFRNetModel():
         # print(loss_D_G)
         # print(loss_G - loss_D_G)
         self.l1_loss_val += valid_loss.detach() + hole_loss.detach()
+        self.g_loss_val += loss_G.detach()
+        self.g_d_loss_val += loss_D_G.detach()
         return loss_G
 
     def get_d_loss(self):
@@ -195,6 +203,7 @@ class RFRNetModel():
         # d_loss = self.D_lf(discriminator_fake, tgt0) + self.D_lf(discriminator_real, tgt1)
 
         d_loss = -(torch.log(discriminator_real + 0.0001) + torch.log(1 - discriminator_fake + 0.0001))
+        self.d_loss_val += d_loss.detach()
         return d_loss
 
     def l1_loss(self, f1, f2, mask=1):
