@@ -33,6 +33,7 @@ class RFRNetModel():
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         self.ssimloss = SSIMLoss()
+        self.ssimloss.cuda()
         if train:
             self.lossNet = VGG16FeatureExtractor()
         try:
@@ -152,8 +153,8 @@ class RFRNetModel():
                 # print(gt_images.shape)
                 # print(comp_B.shape)
                 # print(fake_B.shape)
-                psnr_loss = self.psnr_loss(gt_images.detach().cpu().numpy(), fake_B.detach().cpu().numpy())
-                ssim_loss = self.ssim_loss(gt_images, fake_B).item()
+                psnr_loss = self.psnr_loss(gt_images, fake_B)
+                ssim_loss = self.ssim_loss(gt_images, fake_B)
 
                 psnr_losses.append(psnr_loss)
                 ssim_losses.append(ssim_loss)
