@@ -11,10 +11,9 @@ import numpy as np
 #pip install pytorch-ignite
 import ignite
 #pip install piqa
-from piqa import SSIM
-class SSIMLoss(SSIM):
-    def forward(self, x, y):
-        return 1. - super().forward(x, y)
+#from piqa import ssim
+#pip install pytorch-msssim
+from pytorch_msssim import ssim
 
 class RFRNetModel():
     def __init__(self):
@@ -32,8 +31,6 @@ class RFRNetModel():
     def initialize_model(self, path=None, train=True):
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
-        self.ssimloss = SSIMLoss()
-        self.ssimloss.cuda()
         if train:
             self.lossNet = VGG16FeatureExtractor()
         try:
@@ -257,7 +254,7 @@ class RFRNetModel():
         return ignite.metrics.PSNR(img1, img2)
 
     def ssim_loss(self, gtimg, img):
-        return self.ssimloss(gtimg, img)
+        return ssim(gtimg, img, data_range=1.01)
 
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)
