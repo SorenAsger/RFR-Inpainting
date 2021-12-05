@@ -153,8 +153,8 @@ class RFRNetModel():
                 # print(gt_images.shape)
                 # print(comp_B.shape)
                 # print(fake_B.shape)
-                psnr_loss = self.psnr_loss(gt_images, fake_B)
-                ssim_loss = self.ssim_loss(gt_images, fake_B)
+                psnr_loss = self.psnr_loss(gt_images, comp_B)
+                ssim_loss = self.ssim_loss(gt_images, comp_B)
 
                 psnr_losses.append(psnr_loss)
                 ssim_losses.append(ssim_loss)
