@@ -7,11 +7,14 @@ from torchvision.utils import save_image
 from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor, MobileNetFeatureExtractor
 import os
 import time
-import cv2
 import numpy as np
-# pip install pytorch-msssim
-from pytorch_msssim import ssim
-
+#pip install pytorch-ignite
+import ignite
+#pip install piqa
+from piqa import SSIM
+class SSIMLoss(SSIM):
+    def forward(self, x, y):
+        return 1. - super().forward(x, y)
 
 class RFRNetModel():
     def __init__(self):
@@ -29,6 +32,7 @@ class RFRNetModel():
     def initialize_model(self, path=None, train=True):
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
+        self.ssimloss = SSIMLoss()
         if train:
             self.lossNet = VGG16FeatureExtractor()
         try:
@@ -249,10 +253,10 @@ class RFRNetModel():
         return loss_value
 
     def psnr_loss(self, img1, img2):
-        return cv2.PSNR(img1, img2)
+        return ignite.metrics.PSNR(img1, img2)
 
     def ssim_loss(self, gtimg, img):
-        return ssim(gtimg, img)
+        return self.ssimloss(gtimg, img)
 
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)
