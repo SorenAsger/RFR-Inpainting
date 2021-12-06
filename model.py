@@ -117,7 +117,7 @@ class RFRNetModel():
             if count == max_iters:
                 break
             gt_images, masks = self.__cuda__(*items)
-            masked_images = gt_images * masks
+            masked_images = self.normalizer(gt_images) * masks
             # masks = torch.cat([masks], dim=1)
             fake_B, _ = self.G(masked_images, masks)
             comp_B = fake_B * (1 - masks) + gt_images * masks
