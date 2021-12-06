@@ -23,8 +23,8 @@ class Dataset(torch.utils.data.Dataset):
         self.target_size = target_size
         self.mask_type = mask_mode
         self.mask_reverse = mask_reverse
-        self.normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                   std=[0.229, 0.224, 0.225])
+        self.normalizer = torch.nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                   std=[0.229, 0.224, 0.225]))
         if not training:
             random.seed(69696969)
             np.random.seed(69696969)
