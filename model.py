@@ -6,7 +6,7 @@ from utils.io import load_ckpt
 from utils.io import save_ckpt
 from torchvision.utils import make_grid
 from torchvision.utils import save_image
-from modules.RFRNet import RFRNet, VGG16FeatureExtractor, EfficientNetFeatureExtractor
+from modules.RFRNet import RFRNet, VGG16ShallowFeatureExtractor
 import os
 import time
 import cv2
@@ -27,14 +27,12 @@ class RFRNetModel():
         self.fake_B = None
         self.comp_B = None
         self.l1_loss_val = 0.0
-        self.normalizer = torch.nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                   std=[0.229, 0.224, 0.225]))
 
     def initialize_model(self, path=None, train=True):
         self.G = RFRNet()
         self.optm_G = optim.Adam(self.G.parameters(), lr=2e-4)
         if train:
-            self.lossNet = VGG16FeatureExtractor()
+            self.lossNet = VGG16ShallowFeatureExtractor()
         try:
             start_iter = load_ckpt(path, [('generator', self.G)], [('optimizer_G', self.optm_G)])
             if train:
@@ -65,7 +63,7 @@ class RFRNetModel():
         while self.iter < iters:
             for items in train_loader:
                 gt_images, masks = self.__cuda__(*items)
-                masked_images = self.normalizer(gt_images) * masks
+                masked_images = gt_images * masks
                 # print(gt_images.data.shape)
                 # print(masks.data.shape)
                 # print(masked_images.data.shape)

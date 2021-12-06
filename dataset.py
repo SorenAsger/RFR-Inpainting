@@ -9,7 +9,6 @@ from PIL import Image
 # from scipy.misc import imread
 from imageio import imread
 import cv2
-from torchvision.transforms import transforms
 
 
 class Dataset(torch.utils.data.Dataset):
