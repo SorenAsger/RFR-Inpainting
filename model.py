@@ -1,5 +1,7 @@
 import torch
 import torch.optim as optim
+from torchvision.transforms import transforms
+
 from utils.io import load_ckpt
 from utils.io import save_ckpt
 from torchvision.utils import make_grid
@@ -25,6 +27,8 @@ class RFRNetModel():
         self.fake_B = None
         self.comp_B = None
         self.l1_loss_val = 0.0
+        self.normalizer = torch.nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                                   std=[0.229, 0.224, 0.225]))
 
     def initialize_model(self, path=None, train=True):
         self.G = RFRNet()
@@ -61,7 +65,7 @@ class RFRNetModel():
         while self.iter < iters:
             for items in train_loader:
                 gt_images, masks = self.__cuda__(*items)
-                masked_images = gt_images * masks
+                masked_images = self.normalizer(gt_images) * masks
                 # print(gt_images.data.shape)
                 # print(masks.data.shape)
                 # print(masked_images.data.shape)

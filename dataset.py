@@ -23,8 +23,6 @@ class Dataset(torch.utils.data.Dataset):
         self.target_size = target_size
         self.mask_type = mask_mode
         self.mask_reverse = mask_reverse
-        self.normalizer = torch.nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                   std=[0.229, 0.224, 0.225]))
         if not training:
             random.seed(69696969)
             np.random.seed(69696969)
@@ -41,7 +39,7 @@ class Dataset(torch.utils.data.Dataset):
             print('loading error: ' + self.data[index])
             item = self.load_item(0)
 
-        return self.normalizer(item)
+        return item
 
     def load_item(self, index):
         # print("I am here 1")
