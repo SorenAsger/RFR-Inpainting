@@ -30,7 +30,7 @@ class RFRNetModel():
         self.real_B = None
         self.fake_B = None
         self.comp_B = None
-        self.normalizer = nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]))
+        self.normalizer = nn.Sequential(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
         self.l1_loss_val = 0.0
         self.d_loss_val = 0.0
         self.g_loss_val = 0.0
@@ -106,6 +106,8 @@ class RFRNetModel():
                     s_time = time.time()
                     self.l1_loss_val = 0.0
                     self.d_loss_val = 0.0
+                    self.g_d_loss_val = 0.0
+                    self.g_loss_val = 0.0
 
                 if self.iter % 20000 == 0:
                     if not os.path.exists('{:s}'.format(save_path)):
@@ -234,7 +236,7 @@ class RFRNetModel():
                   + style_loss * 120
                   + preceptual_loss * 0.05
                   + valid_loss * 1
-                  + hole_loss * 6) + (loss_D_G * 0.1)
+                  + hole_loss * 6) + (loss_D_G * 0.01)
 
         # print(loss_D_G)
         # print(loss_G - loss_D_G)
