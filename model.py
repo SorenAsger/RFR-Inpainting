@@ -170,10 +170,10 @@ class RFRNetModel():
                     f.write("\n")
                     f.write(str(ssim_loss))
             count += 1
-        print(np.mean(psnr_losses))
-        print(np.mean(ssim_losses))
-        print(np.mean(l1_hole_losses))
-        print(np.mean(l1_unmasked_losses))
+        print(f"PSNR: {np.mean(psnr_losses)}")
+        print(f"SSIM: {np.mean(ssim_losses)}")
+        print(f"hul (bruges ikke): {np.mean(l1_hole_losses)}")
+        print(f"L1: {np.mean(l1_unmasked_losses)}")
 
     def forward(self, masked_image, mask, gt_image):
         self.real_A = masked_image
