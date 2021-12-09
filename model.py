@@ -158,8 +158,12 @@ class RFRNetModel():
                     grid = make_grid(gt_images[k:k + 1])
                     file_path = '{:s}/results/{:d}/gt_img{:d}.png'.format(result_save_path, count, count)
                     save_image(grid, file_path)
+                    print(np.mean(psnr_losses))
+                    print(np.mean(ssim_losses))
+                    print(np.mean(l1_hole_losses))
+                    print(np.mean(l1_unmasked_losses))
 
-                valid_loss = self.l1_loss(gt_images, fake_B, masks).item()
+                valid_loss = self.l1_loss(gt_images, fake_B).item()
                 hole_loss = self.l1_loss(gt_images, fake_B, (1 - masks)).item()
 
                 # print(gt_images)
@@ -167,7 +171,7 @@ class RFRNetModel():
                 # print(gt_images.shape)
                 # print(comp_B.shape)
                 # print(fake_B.shape)
-                psnr_loss = self.psnr_loss(gt_images.detach().cpu().numpy(), comp_B.detach().cpu().numpy())
+                psnr_loss = self.psnr_loss(gt_images, comp_B).item()
                 ssim_loss = self.ssim_loss(gt_images, comp_B).item()
 
                 psnr_losses.append(psnr_loss)
@@ -292,6 +296,13 @@ class RFRNetModel():
             B_feat = B_feats[i]
             loss_value += torch.mean(torch.abs(A_feat - B_feat))
         return loss_value
+
+    def ssim_loss(self, gtimg, img):
+        return ssim(gtimg, img, data_range=1.01)
+
+    def psnr_loss(self, img1, img2):
+        mse = torch.mean((img1 - img2) ** 2)
+        return 20 * torch.log10(1 / torch.sqrt(mse))
 
     def __cuda__(self, *args):
         return (item.to(self.device) for item in args)

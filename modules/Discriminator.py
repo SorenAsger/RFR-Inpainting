@@ -1,4 +1,5 @@
 from torch import nn
+from torchsummary import summary
 
 
 class Discriminator(nn.Module):
@@ -8,9 +9,10 @@ class Discriminator(nn.Module):
         ndf = 64
         # input is 256x256x3
         self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
+            #(3 x 256 x 256)
             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=False),
+            #()
             # state size. (ndf) x 32 x 32
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ndf * 2),
@@ -38,3 +40,6 @@ class Discriminator(nn.Module):
 
     def forward(self, input):
         return self.main(input)
+
+
+print(summary(Discriminator(), input_size=(3, 256, 256)))
