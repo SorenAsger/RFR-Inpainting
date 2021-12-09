@@ -119,7 +119,8 @@ class RFRNetModel():
             # masks = torch.cat([masks], dim=1)
             fake_B, _ = self.G(masked_images, masks)
             comp_B = fake_B * (1 - masks) + gt_images * masks
-
+            print(gt_images)
+            print(comp_B)
             if count % 100 == 0:
                 print("Iteration:%d" % count)
                 if not os.path.exists('{:s}/results/{:d}'.format(result_save_path, count)):
