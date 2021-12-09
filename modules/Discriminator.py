@@ -1,6 +1,4 @@
 from torch import nn
-from torchsummary import summary
-
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -41,5 +39,3 @@ class Discriminator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
-
-print(summary(Discriminator(), input_size=(3, 256, 256)))
